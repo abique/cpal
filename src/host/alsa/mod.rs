@@ -1061,16 +1061,19 @@ fn set_hw_params_from_format(
     hw_params.set_rate(config.sample_rate.0, alsa::ValueOr::Nearest)?;
     hw_params.set_channels(config.channels as u32)?;
 
+    const NPERIODS: u32 = 2;
     match config.buffer_size {
         BufferSize::Fixed(v) => {
-            hw_params.set_period_size_near((v / 4) as alsa::pcm::Frames, alsa::ValueOr::Nearest)?;
-            hw_params.set_buffer_size(v as alsa::pcm::Frames)?;
+            hw_params.set_period_size_near(v as alsa::pcm::Frames, alsa::ValueOr::Nearest)?;
+            hw_params.set_buffer_size((NPERIODS * v) as alsa::pcm::Frames)?;
         }
         BufferSize::Default => {
             // These values together represent a moderate latency and wakeup interval.
             // Without them, we are at the mercy of the device
-            hw_params.set_period_time_near(25_000, alsa::ValueOr::Nearest)?;
-            hw_params.set_buffer_time_near(100_000, alsa::ValueOr::Nearest)?;
+            const DEFAULT_PERIOD_SIZE: u32 = 1024;
+            const DEFAULT_BUFFER_SIZE: u32 = NPERIODS * DEFAULT_PERIOD_SIZE;
+            hw_params.set_period_time_near(DEFAULT_PERIOD_SIZE, alsa::ValueOr::Nearest)?;
+            hw_params.set_buffer_time_near(DEFAULT_BUFFER_SIZE, alsa::ValueOr::Nearest)?;
         }
     }
 
